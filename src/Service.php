@@ -115,23 +115,38 @@ class Service extends Component
 	 *
 	 * @param Product           $product
 	 * @param int               $limit
-	 *
+	 * @param bool              $includeAll
 	 * @param ProductQuery|null $paddingQuery
 	 *
 	 * @return ProductQueryExtended
 	 * @throws Exception
 	 */
-	public function getRelatedToProductCriteria (Product $product, $limit = 8, ProductQuery $paddingQuery = null)
+	public function getRelatedToProductCriteria (Product $product, $limit = 8, $includeAll = true, ProductQuery $paddingQuery = null)
 	{
 		$id = $product->id;
+		$query;
 
-		$query = <<<SQL
+		if ($includeAll) {
+			$query = <<<SQL
 SELECT product_a, product_b
 FROM {{%purchase_patterns}}
 WHERE (product_a = $id OR product_b = $id)
 ORDER BY purchase_count DESC
 LIMIT $limit
 SQL;
+		} else {
+			$query = <<<SQL
+SELECT pp.product_a, pp.product_b
+FROM {{%purchase_patterns}} pp, {{%commerce_products}} cp
+WHERE (
+	(pp.product_a = $id AND pp.product_b = cp.id AND cp.availableForPurchase = 1)
+	OR
+	(pp.product_b = $id AND pp.product_a = cp.id AND cp.availableForPurchase = 1)
+)
+ORDER BY purchase_count DESC
+LIMIT $limit
+SQL;
+		}
 
 		$results = Craft::$app->db->createCommand($query)->queryAll();
 		$productIds = [];
@@ -157,12 +172,13 @@ SQL;
 	 *
 	 * @param Order             $order
 	 * @param int               $limit
+	 * @param bool              $includeAll
 	 * @param ProductQuery|null $paddingQuery
 	 *
 	 * @return ProductQueryExtended
 	 * @throws Exception
 	 */
-	public function getRelatedToOrderCriteria (Order $order, $limit = 8, ProductQuery $paddingQuery = null)
+	public function getRelatedToOrderCriteria (Order $order, $limit = 8, $includeAll = true, ProductQuery $paddingQuery = null)
 	{
 		$orderProductIds = [];
 		foreach ($order->lineItems as $item)
@@ -175,14 +191,29 @@ SQL;
 			return $this->_getQuery()->limit($limit);
 
 		$idString = '(' . implode(',', $orderProductIds) . ')';
+		$query;
 
-		$query = <<<SQL
+		if ($includeAll) {
+			$query = <<<SQL
 SELECT product_a, product_b
 FROM {{%purchase_patterns}}
-WHERE (product_a IN $idString OR product_b in $idString)
+WHERE (product_a IN $idString OR product_b IN $idString)
 ORDER BY purchase_count DESC
 LIMIT $limit
 SQL;
+		} else {
+			$query = <<<SQL
+SELECT pp.product_a, pp.product_b
+FROM {{%purchase_patterns}} pp, {{%commerce_products}} cp
+WHERE (
+	(pp.product_a IN $idString AND pp.product_b = cp.id AND cp.availableForPurchase = 1)
+	OR
+	(pp.product_b IN $idString AND pp.product_a = cp.id AND cp.availableForPurchase = 1)
+)
+ORDER BY purchase_count DESC
+LIMIT $limit
+SQL;
+		}
 
 		$results = Craft::$app->db->createCommand($query)->queryAll();
 		$productIds = [];

@@ -34,6 +34,7 @@ class Variable
 	 *
 	 * @param Product|Order     $target
 	 * @param int               $limit
+	 * @param bool              $includeAll
 	 * @param ProductQuery|null $paddingQuery
 	 *
 	 * @return ProductQuery
@@ -43,6 +44,7 @@ class Variable
 	public function related (
 		$target,
 		$limit = 8,
+		$includeAll = true,
 		ProductQuery $paddingQuery = null
 	) {
 		$service = PurchasePatterns::getInstance()->getService();
@@ -52,6 +54,7 @@ class Variable
 			return $service->getRelatedToProductCriteria(
 				$target,
 				$limit,
+				$includeAll,
 				$paddingQuery
 			);
 		}
@@ -61,6 +64,7 @@ class Variable
 			return $service->getRelatedToOrderCriteria(
 				$target,
 				$limit,
+				$includeAll,
 				$paddingQuery
 			);
 		}
