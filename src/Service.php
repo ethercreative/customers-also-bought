@@ -131,7 +131,7 @@ SQL;
 
 		foreach ($results as $result)
 			$productIds[] =
-				$result['product_a'] === $id
+				$result['product_a'] == $id
 					? $result['product_b']
 					: $result['product_a'];
 
